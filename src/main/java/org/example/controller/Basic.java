@@ -5,6 +5,6 @@ import org.example.App;
 
 public class Basic {
     public static void HelloHandler(RoutingContext context) {
-        context.response().end(App.config.getProperty("db_name"));
+        context.response().end(App.getConfig().getProperty("db_user"));
     }
 }

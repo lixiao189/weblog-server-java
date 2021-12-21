@@ -35,7 +35,11 @@ class MyVerticle extends AbstractVerticle {
 }
 
 public class App {
-    public static Properties config;
+    private static Properties config;
+
+    public static Properties getConfig() {
+        return config;
+    }
 
     public static void main(String[] args) {
         // 读取配置文件
