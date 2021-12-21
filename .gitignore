@@ -1,3 +1,4 @@
 .idea
 weblog-server-java.iml
 target
+*config.properties

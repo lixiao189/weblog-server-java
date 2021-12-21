@@ -5,6 +5,10 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
+import org.example.controller.Basic;
+
+import java.io.IOException;
+import java.util.Properties;
 
 class MyVerticle extends AbstractVerticle {
     @Override
@@ -12,7 +16,7 @@ class MyVerticle extends AbstractVerticle {
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
 
-        router.get("/hello").handler(context -> context.response().end("hello world"));
+        router.get("/hello").handler(Basic::HelloHandler);
 
         // Now bind the server:
         server.requestHandler(router).listen(8085, res -> {
@@ -31,7 +35,17 @@ class MyVerticle extends AbstractVerticle {
 }
 
 public class App {
+    public static Properties config;
+
     public static void main(String[] args) {
+        // 读取配置文件
+        try {
+            config = new Properties();
+            config.load(App.class.getResourceAsStream("/properties/config.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         Vertx vertx = Vertx.vertx();
         vertx.deployVerticle(new MyVerticle(), res -> {
             if (res.succeeded()) {
