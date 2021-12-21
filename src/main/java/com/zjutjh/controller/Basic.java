@@ -1,6 +1,5 @@
 package com.zjutjh.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zjutjh.mapper.basic.IndexJsonData;
 import com.zjutjh.mapper.basic.TestJsonData;
 import io.vertx.core.json.JsonObject;
