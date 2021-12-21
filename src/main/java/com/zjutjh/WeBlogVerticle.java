@@ -5,10 +5,12 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 
 public class WeBlogVerticle extends AbstractVerticle {
     public void initRouter(Router router) {
         router.get("/").handler(Basic::IndexHandler);
+        router.post("/json").handler(BodyHandler.create()).handler(Basic::testJsonHandler);
     }
 
     @Override

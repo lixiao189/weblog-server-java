@@ -7,6 +7,12 @@ public class Basic {
     public static void IndexHandler(RoutingContext context) {
         JsonObject data = new JsonObject();
         data.put("hello", "world");
-        context.response().end(data.toString());
+        context.json(data);
+    }
+
+    public static void testJsonHandler(RoutingContext context) {
+        JsonObject data = context.getBodyAsJson();
+        System.out.println(data.getString("hello"));
+        context.end("发送成功");
     }
 }
