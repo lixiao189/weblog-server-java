@@ -90,6 +90,41 @@ public class Post {
     }
 
     public static void modifyPost(RoutingContext context) {
+        Session session = context.session();
+        JsonObject body = context.getBodyAsJson();
 
+        int postID = body.getInteger("id");
+        String title = body.getString("title");
+        String content = body.getString("content");
+
+        int senderID = session.get("id");
+        boolean isAdministrator = (int) session.get("administrator") == 1;
+
+        String queryPostStmt = "select * from posts where id = ?";
+        App.getMySQLClient().preparedQuery(queryPostStmt).execute(Tuple.of(postID), ar -> {
+            if (ar.result().size() <= 0) {
+                context.json(new JsonObject(Helper.respData(1, "数据不存在", null)));
+                return;
+            }
+
+            int trueSenderID = -1;
+            for (Row row : ar.result()) {
+                trueSenderID = row.getInteger("sender_id");
+            }
+
+            if (trueSenderID != senderID && !isAdministrator) {
+                context.json(new JsonObject(Helper.respData(2, "只能修改自己的帖子", null)));
+                return;
+            }
+
+            String deletePostStmt = "update posts set title = ?, content = ? where id = ?";
+            App.getMySQLClient().preparedQuery(deletePostStmt).execute(Tuple.of(title, content, postID), updateAr -> {
+                if (updateAr.succeeded()) {
+                    context.json(new JsonObject(Helper.respData(0, "修改成功", null)));
+                } else {
+                    System.out.println(updateAr.cause().getMessage()); // 记录失败的原因
+                }
+            });
+        });
     }
 }
