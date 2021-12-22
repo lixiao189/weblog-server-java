@@ -52,7 +52,37 @@ public class Post {
     }
 
     public static void deletePost(RoutingContext context) {
+        Session session = context.session();
+        int postID = Integer.parseInt(context.pathParam("id"));
+        int senderID = session.get("id");
+        boolean isAdministrator = (int) session.get("administrator") == 1;
 
+        String queryPostStmt = "select  * from posts where id = ?";
+        App.getMySQLClient().preparedQuery(queryPostStmt).execute(Tuple.of(postID), ar -> {
+            if (ar.result().size() == 0) {
+                context.json(new JsonObject(Helper.respData(1, "数据不存在", null)));
+                return;
+            }
+
+            int trueSenderID = -1;
+            for (Row row : ar.result()) {
+                trueSenderID = row.getInteger("sender_id");
+            }
+
+            if (trueSenderID != senderID && !isAdministrator) {
+                context.json(new JsonObject(Helper.respData(2, "只能删除自己的帖子", null)));
+                return;
+            }
+
+            String deletePostStmt = "delete from posts where id = ?";
+            App.getMySQLClient().preparedQuery(deletePostStmt).execute(Tuple.of(postID), deleteAr -> {
+                if (deleteAr.succeeded()) {
+                    context.json(new JsonObject(Helper.respData(0, "删除成功", null)));
+                } else {
+                    System.out.println(deleteAr.cause().getMessage()); // 记录失败的原因
+                }
+            });
+        });
     }
 
     public static void getPostList(RoutingContext context) {

@@ -49,11 +49,9 @@ public class User {
                                 context.json(new JsonObject(Helper.respData(1, "密码错误", null)));
                             }
                         }
-                        return;
                     } else {
                         System.out.println("Failure: " + ar.cause().getMessage());
                     }
-                    App.getMySQLClient().close();
                 });
     }
 
