@@ -60,4 +60,22 @@ public class Helper {
         }
         return list;
     }
+
+    public static ArrayList<Map<String, Object>> getCommentListData(RowSet<Row> rows) {
+        ArrayList<Map<String, Object>> list = new ArrayList<>();
+        for (Row row: rows) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", row.getInteger("id"));
+            item.put("post_id", row.getInteger("post_id"));
+            item.put("post_title", row.getString("post_title"));
+            item.put("content", row.getString("content"));
+            item.put("sender_id", row.getString("sender_id"));
+            item.put("sender_name", row.getString("sender_name"));
+            item.put("at_id", row.getString("at_id"));
+            item.put("at_name", row.getString("at_name"));
+            item.put("created_at", row.getString("created_at"));
+            list.add(item);
+        }
+        return list;
+    }
 }
