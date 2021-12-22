@@ -26,7 +26,6 @@ public class Follow {
                     .preparedQuery("SELECT * FROM follow INNER JOIN users ON users.id = follow.follower_id WHERE user_id = ? LIMIT 20 OFFSET ?")
                     .execute(Tuple.of(userId, offset1), res -> {
                         if (res.succeeded()) {
-                            System.out.println("233");
                             RowSet<Row> rowSet = res.result();
                             ArrayList<Map<String, Object>> list = new ArrayList<>();
                             for (Row row : rowSet) {
