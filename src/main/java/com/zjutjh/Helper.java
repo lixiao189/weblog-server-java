@@ -1,10 +1,13 @@
 package com.zjutjh;
 
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,5 +44,20 @@ public class Helper {
                         context.end();
                     }
                 });
+    }
+
+    public static ArrayList<Map<String, Object>> getPostListData(RowSet<Row> rows) {
+        ArrayList<Map<String, Object>> list = new ArrayList<>();
+        for (Row row: rows) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", row.getInteger("id"));
+            item.put("sender_id", row.getInteger("sender_id"));
+            item.put("sender_name", row.getString("sender_name"));
+            item.put("title", row.getString("title"));
+            item.put("content", row.getString("content").substring(0, 100) + (row.getString("content").length() > 100 ? "..." : ""));
+            item.put("created_at", row.getString("created_at"));
+            list.add(item);
+        }
+        return list;
     }
 }
