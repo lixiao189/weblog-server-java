@@ -2,7 +2,6 @@ package com.zjutjh.controller;
 
 import com.zjutjh.App;
 import com.zjutjh.Helper;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
@@ -154,7 +153,31 @@ public class User {
     }
 
     public static void update(RoutingContext context) {
+        // 解析 HTTP body 数据
+        JsonObject body = context.getBodyAsJson();
+        String pass = body.getString("password");
 
+        // 解析 session 数据
+        Session session = context.session();
+        int id = session.get("id");
+
+        if (pass.length() < 7 || pass.length() > 20) {
+            context.json(new JsonObject(Helper.respData(1, "参数错误", null)));
+            return;
+        }
+
+        String updateUserStmt = "update users set password = ? where id = ?";
+        App.getMySQLClient().preparedQuery(updateUserStmt).execute(Tuple.of(pass, id), ar -> {
+            if (ar.succeeded())
+                context.json(new JsonObject(Helper.respData(0, "修改成功", null)));
+            else {
+                try {
+                    throw ar.cause();
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     public static void logout(RoutingContext context) {
