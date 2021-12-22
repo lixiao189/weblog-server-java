@@ -29,18 +29,17 @@ public class Follow {
                             RowSet<Row> rowSet = res.result();
                             ArrayList<Map<String, Object>> list = new ArrayList<>();
                             for (Row row : rowSet) {
-                                Map<String, Object> _data = new HashMap<>();
-                                _data.put("id", row.getInteger("id"));
-                                _data.put("name", row.getString("username"));
-                                list.add(_data);
+                                Map<String, Object> item = new HashMap<>();
+                                item.put("id", row.getInteger("id"));
+                                item.put("name", row.getString("username"));
+                                list.add(item);
                             }
 
                             String msg;
 
                             if (list.size() == 0) {
                                 msg = "没有结果";
-                                Object data = null;
-                                context.json(Helper.respData(2, msg, data));
+                                context.json(Helper.respData(2, msg, null));
                             } else {
                                 msg = "获取成功";
                                 Map<String, Object> data = new HashMap<>();
@@ -77,18 +76,17 @@ public class Follow {
                             RowSet<Row> rowSet = res.result();
                             ArrayList<Map<String, Object>> list = new ArrayList<>();
                             for (Row row : rowSet) {
-                                Map<String, Object> _data = new HashMap<>();
-                                _data.put("id", row.getInteger("id"));
-                                _data.put("name", row.getString("username"));
-                                list.add(_data);
+                                Map<String, Object> item = new HashMap<>();
+                                item.put("id", row.getInteger("id"));
+                                item.put("name", row.getString("username"));
+                                list.add(item);
                             }
 
                             String msg;
 
                             if (list.size() == 0) {
                                 msg = "没有结果";
-                                Object data = null;
-                                context.json(Helper.respData(2, msg, data));
+                                context.json(Helper.respData(2, msg, null));
                             } else {
                                 msg = "获取成功";
                                 Map<String, Object> data = new HashMap<>();
