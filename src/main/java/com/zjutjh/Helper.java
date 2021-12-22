@@ -1,5 +1,7 @@
 package com.zjutjh;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,5 +20,9 @@ public class Helper {
 
     public static Map<String, Object> notAdministratorResponse() {
         return respData(254, "不是管理员", null);
+    }
+
+    public static String getTime(LocalDate localDate, LocalTime localTime) {
+        return localDate + " " + localTime;
     }
 }
