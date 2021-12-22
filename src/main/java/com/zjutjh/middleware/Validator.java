@@ -10,6 +10,7 @@ public class Validator {
         Session session = context.session();
         if (session.get("username") != null) {
             context.next();
+            return;
         }
 
         context.json(new JsonObject(Helper.notLoginResponse()));
@@ -23,6 +24,7 @@ public class Validator {
             } else {
                 context.json(new JsonObject(Helper.notAdministratorResponse()));
             }
+            return;
         }
 
         context.json(new JsonObject(Helper.notLoginResponse()));
