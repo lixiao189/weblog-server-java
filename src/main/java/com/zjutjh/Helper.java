@@ -1,5 +1,8 @@
 package com.zjutjh;
 
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.sqlclient.Tuple;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashMap;
@@ -24,5 +27,19 @@ public class Helper {
 
     public static String getTime(LocalDate localDate, LocalTime localTime) {
         return localDate + " " + localTime;
+    }
+
+    public static void executeReportQuery(RoutingContext context, int id, String sql) {
+        App.getMySQLClient()
+                .preparedQuery(sql)
+                .execute(Tuple.of(id), res -> {
+                    if (res.succeeded()) {
+                        System.out.println(res.result());
+                        context.json(Helper.respData(0, "举报成功", null));
+                    } else {
+                        System.out.println(res.cause().getMessage());
+                        context.end();
+                    }
+                });
     }
 }
