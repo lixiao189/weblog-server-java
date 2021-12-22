@@ -7,6 +7,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.SessionHandler;
+import io.vertx.ext.web.sstore.LocalSessionStore;
 
 public class WeBlogVerticle extends AbstractVerticle {
     public void initRouter(Router router) {
@@ -18,7 +20,8 @@ public class WeBlogVerticle extends AbstractVerticle {
         Router commentRouter = Router.router(vertx);
 
         router.mountSubRouter("/api", apiRouter);
-        apiRouter.route().handler(BodyHandler.create());
+        apiRouter.route().handler(BodyHandler.create()); // 添加 body 处理中间件
+        apiRouter.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)));
 
         // 用户路由
         apiRouter.mountSubRouter("/user", userRouter);
