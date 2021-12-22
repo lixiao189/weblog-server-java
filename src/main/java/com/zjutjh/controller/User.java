@@ -2,12 +2,16 @@ package com.zjutjh.controller;
 
 import com.zjutjh.App;
 import com.zjutjh.Helper;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class User {
     public static void login(RoutingContext context) {
@@ -64,7 +68,8 @@ public class User {
             return;
         }
 
-        App.getMySQLClient().preparedQuery("insert into users (username, password, administrator, followers_num, followed_num) VALUES (?, ?, 0, 0, 0)")
+        String sqlStmt = "insert into users (username, password, administrator, followers_num, followed_num) VALUES (?, ?, 0, 0, 0)";
+        App.getMySQLClient().preparedQuery(sqlStmt)
                 .execute(Tuple.of(username, password), ar -> {
                     if (ar.succeeded()) {
                         context.json(new JsonObject(Helper.respData(0, "注册成功", null)));
@@ -84,7 +89,68 @@ public class User {
     }
 
     public static void getInfo(RoutingContext context) {
+        JsonObject body = context.getBodyAsJson();
+        Session session = context.session();
 
+        if (body.getString("type").equals("user")) {
+            if (session.get("id") == null) { // 没有登录
+                context.json(new JsonObject(Helper.notLoginResponse()));
+                return;
+            }
+
+            // 查询用户信息
+            String sqlStmt = "select * from users where id = ?";
+            App.getMySQLClient().preparedQuery(sqlStmt).execute(Tuple.of(session.get("id")), ar -> {
+                if (ar.succeeded()) {
+                    RowSet<Row> rowSet = ar.result();
+                    Map<String, Object> data = new HashMap<>();
+
+                    for (Row row : rowSet) {
+                        data.put("id", row.getInteger("id"));
+                        data.put("username", row.getString("username"));
+                        data.put("administrator", row.getInteger("administrator") == 1);
+                        data.put("followed_num", row.getInteger("followed_num"));
+                        data.put("followers_num", row.getInteger("followers_num"));
+                    }
+
+                    context.json(new JsonObject(Helper.respData(0, "查询成功", data)));
+                } else {
+                    context.json(new JsonObject(Helper.respData(0, "参数错误", null)));
+                }
+            });
+        } else if (body.getString("type").equals("other")) {
+            String queryOtherInfoStmt = "select * from users where id = ?";
+            App.getMySQLClient().preparedQuery(queryOtherInfoStmt).execute(Tuple.of(body.getInteger("id")), ar -> {
+                if (ar.result().size() == 0) {
+                    context.json(new JsonObject(Helper.respData(1, "参数错误", null)));
+                } else {
+                    Map<String, Object> data = new HashMap<>();
+                    for (Row row : ar.result()) {
+                        data.put("id", row.getInteger("id"));
+                        data.put("username", row.getString("username"));
+                        data.put("followed_num", row.getInteger("followed_num"));
+                        data.put("followers_num", row.getInteger("followers_num"));
+                    }
+
+                    // 根据是否关注来返回数据
+                    String queryFollowRelationStmt = "select * from follow where user_id = ? and follower_id = ?";
+                    if (session.get("id") == null) {
+                        data.put("is_followed", false);
+
+                        context.json(new JsonObject(Helper.respData(0, "查询成功", data)));
+                    } else {
+                        App.getMySQLClient().preparedQuery(queryFollowRelationStmt).execute(Tuple.of(body.getInteger("id"), (int) session.get("id")), checkFollowRelationResult -> {
+                            boolean isFollowed = checkFollowRelationResult.result().size() != 0;
+                            data.put("is_followed", isFollowed);
+
+                            context.json(new JsonObject(Helper.respData(0, "查询成功", data)));
+                        });
+                    }
+                }
+            });
+        } else {
+            context.json(new JsonObject(Helper.respData(1, "参数错误", null)));
+        }
     }
 
     public static void update(RoutingContext context) {
