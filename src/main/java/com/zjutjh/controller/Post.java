@@ -9,6 +9,7 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -86,7 +87,49 @@ public class Post {
     }
 
     public static void getPostList(RoutingContext context) {
+        JsonObject body = context.getBodyAsJson();
 
+        int page = Integer.parseInt(context.pathParam("page"));
+        String type = body.getString("type");
+
+        if (type.equals("all")) {
+            String queryPostListStmt = "select * from posts order by created_at desc limit 20 offset ?";
+            App.getMySQLClient().preparedQuery(queryPostListStmt).execute(Tuple.of((page - 1) * 20), ar -> {
+                if (ar.result().size() != 0) {
+                    ArrayList<Map<String, Object>> postList = new ArrayList<>();
+                    Map<String, Object> tmpPost = new HashMap<>();
+
+                    for (Row row: ar.result()) {
+                        tmpPost.put("id", row.getInteger("id"));
+                        tmpPost.put("sender_name", row.getString("sender_name"));
+                        tmpPost.put("sender_id", row.getInteger("sender_id"));
+                        tmpPost.put("title", row.getString("title"));
+                        tmpPost.put("content", row.getString("content").substring(0, 100) + (row.getString("content").length() > 100 ? "..." : ""));
+                        tmpPost.put("created_at", Helper.getTime(row.getLocalDate("created_at"), row.getLocalTime("created_at")));
+
+                        postList.add(tmpPost);
+                    }
+
+                    App.getMySQLClient().preparedQuery(queryPostListStmt).execute(Tuple.of(page * 20), nextAr -> {
+                        Map<String, Object> data = new HashMap<>();
+                        boolean hasNext = ar.result().size() > 0;
+
+                        data.put("has_next", hasNext);
+                        data.put("list", postList);
+
+                        context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
+                    });
+                } else {
+                    context.json(new JsonObject(Helper.respData(2, "内容为空", null)));
+                }
+            });
+        } else if (type.equals("user")) {
+            int id = body.getInteger("id");
+
+            // TODO 完成用户所有评论的获取
+        } else {
+            context.json(new JsonObject(Helper.respData(1, "参数错误", null)));
+        }
     }
 
     public static void modifyPost(RoutingContext context) {
