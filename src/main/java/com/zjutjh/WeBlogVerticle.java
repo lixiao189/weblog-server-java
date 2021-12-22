@@ -6,6 +6,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 
 public class WeBlogVerticle extends AbstractVerticle {
     public void initRouter(Router router) {
@@ -17,6 +18,7 @@ public class WeBlogVerticle extends AbstractVerticle {
         Router commentRouter = Router.router(vertx);
 
         router.mountSubRouter("/api", apiRouter);
+        apiRouter.route().handler(BodyHandler.create());
 
         // 用户路由
         apiRouter.mountSubRouter("/user", userRouter);

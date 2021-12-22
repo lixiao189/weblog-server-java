@@ -11,4 +11,12 @@ public class Helper {
         respData.put("data", data);
         return respData;
     }
+
+    public static Map<String, Object> notLoginResponse() {
+        return respData(255, "尚未登录", null);
+    }
+
+    public static Map<String, Object> notAdministratorResponse() {
+        return respData(254, "不是管理员", null);
+    }
 }
