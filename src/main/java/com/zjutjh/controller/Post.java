@@ -99,7 +99,7 @@ public class Post {
                     ArrayList<Map<String, Object>> postList = Helper.getPostListData(ar.result());
 
                     App.getMySQLClient().preparedQuery(queryPostListStmt).execute(Tuple.of(page * 20), nextAr -> {
-                        Map<String, Object> data = Helper.postListRespData(nextAr.result(), postList);
+                        Map<String, Object> data = Helper.listRespData(nextAr.result(), postList);
                         context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
                     });
                 } else {
@@ -116,7 +116,7 @@ public class Post {
 
                     // 查询下一页是否存在
                     App.getMySQLClient().preparedQuery(queryUserPostListStmt).execute(Tuple.of(id, page * 20), nextAr -> {
-                        Map<String, Object> data = Helper.postListRespData(nextAr.result(), userPostList);
+                        Map<String, Object> data = Helper.listRespData(nextAr.result(), userPostList);
                         context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
                     });
                 } else {

@@ -9,6 +9,9 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
+import java.util.ArrayList;
+import java.util.Map;
+
 public class Comment {
     public static void createComment(RoutingContext context) {
         JsonObject body = context.getBodyAsJson();
@@ -110,6 +113,51 @@ public class Comment {
     }
 
     public static void getCommentList(RoutingContext context) {
+        JsonObject body = context.getBodyAsJson();
+        String type = body.getString("type");
+        int id = body.getInteger("id");
+        int page = body.getInteger("page");
 
+        if (type.equals("post")) {
+            String queryCommentListStmt = "select * from comments where post_id = ? limit 20 offset ?";
+
+            App.getMySQLClient().preparedQuery(queryCommentListStmt).execute(Tuple.of(id, (page - 1) * 20), ar -> {
+                if (ar.failed()) {
+                    System.out.println(ar.cause().getMessage());
+                    return;
+                } else if (ar.result().size() == 0) {
+                    context.json(new JsonObject(Helper.respData(2, "内容为空", null)));
+                    return;
+                }
+
+                ArrayList<Map<String, Object>> commentList = Helper.getCommentListData(ar.result());
+                // 检查是否有下一个列表
+                App.getMySQLClient().preparedQuery(queryCommentListStmt).execute(Tuple.of(id, page * 20), nextAr -> {
+                    Map<String, Object> data = Helper.listRespData(nextAr.result(), commentList);
+                    context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
+                });
+            });
+        } else if (type.equals("user")) {
+            String queryUserListStmt = "select * from comments where sender_id = ? limit 20 offset ?";
+
+            App.getMySQLClient().preparedQuery(queryUserListStmt).execute(Tuple.of(id, (page - 1) * 20), ar -> {
+                if (ar.failed()) {
+                    System.out.println(ar.cause().getMessage());
+                    return;
+                } else if (ar.result().size() == 0) {
+                    context.json(new JsonObject(Helper.respData(2, "内容为空", null)));
+                    return;
+                }
+
+                ArrayList<Map<String, Object>> commentList = Helper.getCommentListData(ar.result());
+                // 检查是否有下一个列表
+                App.getMySQLClient().preparedQuery(queryUserListStmt).execute(Tuple.of(id, page * 20), nextAr -> {
+                    Map<String, Object> data = Helper.listRespData(nextAr.result(), commentList);
+                    context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
+                });
+            });
+        } else {
+            context.json(new JsonObject(Helper.respData(1, "参数错误", null)));
+        }
     }
 }

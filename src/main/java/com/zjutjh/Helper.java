@@ -1,6 +1,6 @@
 package com.zjutjh;
 
-import io.vertx.core.Vertx;
+import io.vertx.core.AsyncResult;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
@@ -80,12 +80,12 @@ public class Helper {
         return list;
     }
 
-    public static Map<String, Object> postListRespData(RowSet<Row> result, ArrayList<Map<String, Object>> postList) {
+    public static Map<String, Object> listRespData(RowSet<Row> result, ArrayList<Map<String, Object>> list) {
         Map<String, Object> data = new HashMap<>();
         boolean hasNext = result.size() > 0;
 
         data.put("has_next", hasNext);
-        data.put("list", postList);
+        data.put("list", list);
 
         return data;
     }
