@@ -17,7 +17,7 @@ public class Follow {
     public static void getFollowList(RoutingContext context) {
         JsonObject body = context.getBodyAsJson();
         String type = body.getString("type");
-        String userId = body.getString("user_id");
+        int userId = body.getInteger("user_id");
         int page = body.getInteger("page");
 
         if (type.equals("fans")) {

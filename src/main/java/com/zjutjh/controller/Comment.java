@@ -21,57 +21,33 @@ public class Comment {
         Integer atID = body.getInteger("at_id");
         String atName = body.getString("at_name");
 
-        String queryMatchingStmt = "select * from users where id = ?";
-        App.getMySQLClient().preparedQuery(queryMatchingStmt).execute(Tuple.of(atID), ar -> {
-            String trueName = "";
+        // 检查是否为对用户评论或者对帖子
+        if (atID == null || atName == null) {
+            Helper.executeCreateCommentQuery(context, postID, content, atID, atName);
+        } else {
 
-            if (ar.result().size() == 0) {
-                context.json(new JsonObject(Helper.respData(1, "At 用户不存在", null)));
-                return;
-            }
-
-            for (Row row : ar.result())
-                trueName = row.getString("username");
-            if (!trueName.equals(atName)) {
-                context.json(new JsonObject(Helper.respData(2, "At 用户和 ID 无法对应", null)));
-                return;
-            }
-
-            // 获取帖子标题
-            String queryTitleStmt = "select * from posts where id = ?";
-            App.getMySQLClient().preparedQuery(queryTitleStmt).execute(Tuple.of(atID), queryTitleAr -> {
-                if (ar.failed()) {
-                    System.out.println(ar.cause().getMessage());
-                    return;
-                }
+            // 查询对应用户
+            String queryMatchingStmt = "select * from users where id = ?";
+            App.getMySQLClient().preparedQuery(queryMatchingStmt).execute(Tuple.of(atID), ar -> {
+                String trueName = "";
 
                 if (ar.result().size() == 0) {
-                    context.json(new JsonObject(Helper.respData(3, "帖子不存在", null)));
+                    context.json(new JsonObject(Helper.respData(1, "At 用户不存在", null)));
                     return;
                 }
 
-                String title = "";
-                for (Row row : queryTitleAr.result()) {
-                    title = row.getString("title");
+                for (Row row : ar.result())
+                    trueName = row.getString("username");
+                if (!trueName.equals(atName)) {
+                    context.json(new JsonObject(Helper.respData(2, "At 用户和 ID 无法对应", null)));
+                    return;
                 }
 
-                // 解析用户 session
-                Session session = context.session();
-                int senderID = session.get("id");
-                String senderName = session.get("username");
+                Helper.executeCreateCommentQuery(context, postID, content, atID, atName);
 
-                String insertCommentStmt = "insert into comments (post_id, post_title, content, sender_id, sender_name, at_id, at_name, is_reported) values (?, ?, ?, ?, ?, ?, ?, 0)";
-                App.getMySQLClient().preparedQuery(insertCommentStmt).execute(Tuple.of(
-                        postID, title, content, atID, atName, senderID, senderName
-                ), insertAr -> {
-                    if (insertAr.succeeded()) {
-                        context.json(new JsonObject(Helper.respData(0, "创建成功", null)));
-                    } else {
-                        System.out.println(insertAr.cause().getMessage());
-                    }
-                });
             });
-        });
+        }
+
     }
 
     public static void deleteComment(RoutingContext context) {

@@ -1,7 +1,9 @@
 package com.zjutjh;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.Session;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
@@ -89,4 +91,44 @@ public class Helper {
 
         return data;
     }
+
+    public static void executeCreateCommentQuery(RoutingContext context, int postID, String content, Integer atID, String atName) {
+
+        // 获取帖子标题
+        String queryTitleStmt = "select * from posts where id = ?";
+        App.getMySQLClient().preparedQuery(queryTitleStmt).execute(Tuple.of(postID), ar -> {
+            if (ar.failed()) {
+                System.out.println(ar.cause().getMessage());
+                return;
+            }
+
+            if (ar.result().size() == 0) {
+                context.json(new JsonObject(Helper.respData(3, "帖子不存在", null)));
+                return;
+            }
+
+            String title = "";
+            for (Row row : ar.result()) {
+                title = row.getString("title");
+            }
+
+            // 解析用户 session
+            Session session = context.session();
+            int senderID = session.get("id");
+            String senderName = session.get("username");
+
+            String insertCommentStmt = "insert into comments (post_id, post_title, content, sender_id, sender_name, at_id, at_name, is_reported) values (?, ?, ?, ?, ?, ?, ?, 0)";
+            App.getMySQLClient().preparedQuery(insertCommentStmt).execute(Tuple.of(
+                    postID, title, content, senderID, senderName, atID, atName
+            ), insertAr -> {
+                if (insertAr.succeeded()) {
+                    context.json(new JsonObject(Helper.respData(0, "创建成功", null)));
+                } else {
+                    System.out.println(insertAr.cause().getMessage());
+                    context.end();
+                }
+            });
+        });
+    }
 }
+
