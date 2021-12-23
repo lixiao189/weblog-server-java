@@ -1,5 +1,6 @@
 package com.zjutjh;
 
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
@@ -48,7 +49,7 @@ public class Helper {
 
     public static ArrayList<Map<String, Object>> getPostListData(RowSet<Row> rows) {
         ArrayList<Map<String, Object>> list = new ArrayList<>();
-        for (Row row: rows) {
+        for (Row row : rows) {
             Map<String, Object> item = new HashMap<>();
             item.put("id", row.getInteger("id"));
             item.put("sender_id", row.getInteger("sender_id"));
@@ -63,7 +64,7 @@ public class Helper {
 
     public static ArrayList<Map<String, Object>> getCommentListData(RowSet<Row> rows) {
         ArrayList<Map<String, Object>> list = new ArrayList<>();
-        for (Row row: rows) {
+        for (Row row : rows) {
             Map<String, Object> item = new HashMap<>();
             item.put("id", row.getInteger("id"));
             item.put("post_id", row.getInteger("post_id"));
@@ -77,5 +78,15 @@ public class Helper {
             list.add(item);
         }
         return list;
+    }
+
+    public static Map<String, Object> postListRespData(RowSet<Row> result, ArrayList<Map<String, Object>> postList) {
+        Map<String, Object> data = new HashMap<>();
+        boolean hasNext = result.size() > 0;
+
+        data.put("has_next", hasNext);
+        data.put("list", postList);
+
+        return data;
     }
 }
