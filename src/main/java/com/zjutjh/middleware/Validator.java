@@ -19,7 +19,7 @@ public class Validator {
     public static void checkPrivilege(RoutingContext context) {
         Session session = context.session();
         if (session.get("username") != null) {
-            if (Integer.parseInt(session.get("administrator")) == 1) {
+            if ((int)session.get("administrator") == 1) {
                 context.next();
             } else {
                 context.json(new JsonObject(Helper.notAdministratorResponse()));

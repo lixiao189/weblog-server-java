@@ -54,8 +54,8 @@ public class Helper {
             item.put("sender_id", row.getInteger("sender_id"));
             item.put("sender_name", row.getString("sender_name"));
             item.put("title", row.getString("title"));
-            item.put("content", row.getString("content").substring(0, 100) + (row.getString("content").length() > 100 ? "..." : ""));
-            item.put("created_at", row.getString("created_at"));
+            item.put("content", row.getString("content").length() > 100 ? row.getString("content").substring(0, 100) + "..." : row.getString("content"));
+            item.put("created_at", Helper.getTime(row.getLocalDate("created_at"), row.getLocalTime("created_at")));
             list.add(item);
         }
         return list;
@@ -69,11 +69,11 @@ public class Helper {
             item.put("post_id", row.getInteger("post_id"));
             item.put("post_title", row.getString("post_title"));
             item.put("content", row.getString("content"));
-            item.put("sender_id", row.getString("sender_id"));
+            item.put("sender_id", row.getInteger("sender_id"));
             item.put("sender_name", row.getString("sender_name"));
-            item.put("at_id", row.getString("at_id"));
+            item.put("at_id", row.getInteger("at_id"));
             item.put("at_name", row.getString("at_name"));
-            item.put("created_at", row.getString("created_at"));
+            item.put("created_at", Helper.getTime(row.getLocalDate("created_at"), row.getLocalTime("created_at")));
             list.add(item);
         }
         return list;
