@@ -19,9 +19,9 @@ public class Report {
         int id = body.getInteger("id");
 
         if (type.equals("post")) {
-            Helper.executeReportQuery(context, id, "UPDATE posts SET is_reported = 1 WHERE id = ?");
+            Helper.executeReportQuery(context, id, "UPDATE posts SET is_reported = 1 WHERE id = ?", "举报成功");
         } else if (type.equals("comment")) {
-            Helper.executeReportQuery(context, id, "UPDATE comments SET is_reported = 1 WHERE id = ?");
+            Helper.executeReportQuery(context, id, "UPDATE comments SET is_reported = 1 WHERE id = ?", "举报成功");
         } else {
             context.json(Helper.respData(1, "参数错误", null));
         }
@@ -87,6 +87,16 @@ public class Report {
     }
 
     public static void cancelReport(RoutingContext context) {
+        JsonObject body = context.getBodyAsJson();
+        String type = body.getString("type");
+        int id = body.getInteger("id");
 
+        if (type.equals("post")) {
+            Helper.executeReportQuery(context, id, "UPDATE posts SET is_reported = 0 WHERE id = ?", "撤销成功");
+        } else if (type.equals("comment")) {
+            Helper.executeReportQuery(context, id, "UPDATE comments SET is_reported = 0 WHERE id = ?", "撤销成功");
+        } else {
+            context.json(Helper.respData(1, "参数错误", null));
+        }
     }
 }

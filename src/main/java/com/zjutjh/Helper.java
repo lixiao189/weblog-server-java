@@ -32,13 +32,13 @@ public class Helper {
         return localDate + " " + localTime;
     }
 
-    public static void executeReportQuery(RoutingContext context, int id, String sql) {
+    public static void executeReportQuery(RoutingContext context, int id, String sql, String msg) {
         App.getMySQLClient()
                 .preparedQuery(sql)
                 .execute(Tuple.of(id), res -> {
                     if (res.succeeded()) {
                         System.out.println(res.result());
-                        context.json(Helper.respData(0, "举报成功", null));
+                        context.json(Helper.respData(0, msg, null));
                     } else {
                         System.out.println(res.cause().getMessage());
                         context.end();
