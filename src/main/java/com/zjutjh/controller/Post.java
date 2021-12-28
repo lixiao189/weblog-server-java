@@ -85,45 +85,45 @@ public class Post {
     }
 
     public static void getPostList(RoutingContext context) {
-        JsonObject body = context.getBodyAsJson();
-
+        // 解析路径参数
         int page = Integer.parseInt(context.pathParam("page"));
+
+        // 解析 body 参数
+        JsonObject body = context.getBodyAsJson();
         String type = body.getString("type");
 
+        // 查询数据结果
+        final String queryPostListStmt;
+        final Tuple queryPageData;
+        final Tuple queryNextPageData;
+
         if (type.equals("all")) {
-            String queryPostListStmt = "select * from posts order by created_at desc limit 20 offset ?";
-            App.getMySQLClient().preparedQuery(queryPostListStmt).execute(Tuple.of((page - 1) * 20), ar -> {
-                if (ar.result().size() != 0) {
-                    ArrayList<Map<String, Object>> postList = Helper.getPostListData(ar.result());
-
-                    App.getMySQLClient().preparedQuery(queryPostListStmt).execute(Tuple.of(page * 20), nextAr -> {
-                        Map<String, Object> data = Helper.listRespData(nextAr.result(), postList);
-                        context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
-                    });
-                } else {
-                    context.json(new JsonObject(Helper.respData(2, "内容为空", null)));
-                }
-            });
+            queryPostListStmt = "select * from posts order by created_at desc limit 20 offset ?";
+            queryPageData = Tuple.of((page - 1) * 20);
+            queryNextPageData = Tuple.of(page * 20);
         } else if (type.equals("user")) {
-            int id = body.getInteger("id");
-
-            String queryUserPostListStmt = "select * from posts where sender_id = ? order by created_at desc limit 20 offset ?";
-            App.getMySQLClient().preparedQuery(queryUserPostListStmt).execute(Tuple.of(id, (page - 1) * 20), ar -> {
-                if (ar.result().size() != 0) {
-                    ArrayList<Map<String, Object>> userPostList = Helper.getPostListData(ar.result());
-
-                    // 查询下一页是否存在
-                    App.getMySQLClient().preparedQuery(queryUserPostListStmt).execute(Tuple.of(id, page * 20), nextAr -> {
-                        Map<String, Object> data = Helper.listRespData(nextAr.result(), userPostList);
-                        context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
-                    });
-                } else {
-                    context.json(new JsonObject(Helper.respData(2, "内容为空", null)));
-                }
-            });
+            queryPostListStmt = "select * from posts where sender_id = ? order by created_at desc limit 20 offset ?";
+            queryPageData = Tuple.of(body.getInteger("id"), (page - 1) * 20);
+            queryNextPageData = Tuple.of(body.getInteger("id"), page * 20);
         } else {
             context.json(new JsonObject(Helper.respData(1, "参数错误", null)));
+            return;
         }
+
+        final ArrayList<Map<String, Object>> postList = new ArrayList<>();
+        App.getMySQLClient().preparedQuery(queryPostListStmt).execute(queryPageData).compose(ar -> {
+            if (ar.size() != 0) {
+                Helper.getPostListData(ar, postList);
+                return App.getMySQLClient().preparedQuery(queryPostListStmt).execute(queryNextPageData);
+            } else {
+                context.json(new JsonObject(Helper.respData(2, "内容为空", null)));
+                return Future.failedFuture("内容为空");
+            }
+        }).compose(ar -> {
+            final Map<String, Object> data = Helper.listRespData(ar, postList);
+            context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
+            return Future.succeededFuture();
+        });
     }
 
     public static void modifyPost(RoutingContext context) {
