@@ -79,11 +79,13 @@ public class Helper {
 
     public static ArrayList<Map<String, Object>> getCommentListData(RowSet<Row> rows) {
         ArrayList<Map<String, Object>> list = new ArrayList<>();
+
+
         for (Row row : rows) {
             Map<String, Object> item = new HashMap<>();
             item.put("id", row.getInteger("id"));
             item.put("post_id", row.getInteger("post_id"));
-            item.put("post_title", row.getString("post_title"));
+            item.put("post_title", row.getString("title"));
             item.put("content", row.getString("content"));
             item.put("sender_id", row.getInteger("sender_id"));
             item.put("sender_name", row.getString("sender_name"));
@@ -120,10 +122,8 @@ public class Helper {
                 return;
             }
 
-            String title = "";
             int userID = -1;
             for (Row row : ar.result()) {
-                title = row.getString("title");
                 userID = row.getInteger("sender_id");
             }
 
@@ -133,10 +133,10 @@ public class Helper {
             String senderName = session.get("username");
 
 
-            String insertCommentStmt = "insert into comments (post_id, post_title, content, sender_id, sender_name, at_id, at_name, is_reported) values (?, ?, ?, ?, ?, ?, ?, 0)";
+            String insertCommentStmt = "insert into comments (post_id, content, sender_id, sender_name, at_id, at_name, is_reported) values (?, ?, ?, ?, ?, ?, ?, 0)";
             int finalUserID = userID;
             App.getMySQLClient().preparedQuery(insertCommentStmt).execute(Tuple.of(
-                    postID, title, content, senderID, senderName, atID, atName
+                    postID, content, senderID, senderName, atID, atName
             ), insertAr -> {
                 if (insertAr.succeeded()) {
                     // 对应用户消息数量+1 (自己对自己发的不加)
