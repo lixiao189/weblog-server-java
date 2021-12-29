@@ -62,6 +62,8 @@ public class WeBlogVerticle extends AbstractVerticle {
             postRouter.mountSubRouter("/tag", tagRouter);
             {
                 tagRouter.post("/autocomplete").handler(Validator::checkAuth).handler(Tag::tagAutoComplete); // 获取标签自动补全列表
+                tagRouter.get("/list/:tagID/:page").handler(Tag::getPostList); // 获取分类下的所有帖子
+                tagRouter.post("/hot"); // 获取热门板块
             }
 
             // 举报路由

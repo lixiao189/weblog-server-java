@@ -45,4 +45,37 @@ public class Tag {
             context.end();
         });
     }
+
+    /**
+     * 获取标签下帖子列表
+     *
+     * @param context 框架上下文
+     */
+    public static void getPostList(RoutingContext context) {
+        // 解析路径参数
+        int tagID = Integer.parseInt(context.pathParam("tagID"));
+        int page = Integer.parseInt(context.pathParam("page"));
+
+        // 获取 tag 下的所有帖子
+        final ArrayList<Map<String, Object>> postList = new ArrayList<>();
+        String queryPostListStmt = "SELECT posts.* FROM tags " +
+                "INNER JOIN post_to_tag INNER JOIN posts " +
+                "on tags.id = post_to_tag.tag_id and post_to_tag.post_id = posts.id " +
+                "WHERE tags.id = ? " +
+                "order by tags.created_at desc " +
+                "limit 20 offset ?;";
+        App.getMySQLClient().preparedQuery(queryPostListStmt).execute(Tuple.of(tagID, (page - 1) * 20)).compose(ar -> {
+            if (ar.size() == 0) {
+                context.json(new JsonObject(Helper.respData(2, "内容为空", null)));
+                return Future.failedFuture("内容为空");
+            } else {
+                Helper.getPostListData(ar, postList);
+                return App.getMySQLClient().preparedQuery(queryPostListStmt).execute(Tuple.of(tagID, page * 20));
+            }
+        }).compose(ar -> {
+            final Map<String, Object> data = Helper.listRespData(ar, postList);
+            context.json(new JsonObject(Helper.respData(0, "获取成功", data)));
+            return Future.succeededFuture();
+        });
+    }
 }
