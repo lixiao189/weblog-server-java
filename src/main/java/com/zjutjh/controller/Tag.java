@@ -78,4 +78,21 @@ public class Tag {
             return Future.succeededFuture();
         });
     }
+
+    /**
+     * 获取热门前 20 个标签
+     *
+     * @param context 框架请求上下文
+     */
+    public static void getHotTag(RoutingContext context) {
+        // 获取回帖数最多的 20 个 tag
+        final String queryHotTagStmt = "select  * from tags order by post_num desc limit 20";
+        App.getMySQLClient().preparedQuery(queryHotTagStmt).execute().compose(ar -> {
+            ArrayList<JsonObject> tagList = new ArrayList<>();
+            for (Row row : ar)
+                tagList.add(row.toJson());
+            context.json(new JsonObject(Helper.respData(0, "获取成功", tagList)));
+            return Future.succeededFuture();
+        });
+    }
 }
