@@ -30,7 +30,7 @@ public class Follow {
                             ArrayList<Map<String, Object>> list = new ArrayList<>();
                             for (Row row : rowSet) {
                                 Map<String, Object> item = new HashMap<>();
-                                // TODO: 双表查询id冲突
+
                                 item.put("id", row.getInteger("follower_id"));
                                 item.put("name", row.getString("username"));
                                 list.add(item);
@@ -78,7 +78,7 @@ public class Follow {
                             ArrayList<Map<String, Object>> list = new ArrayList<>();
                             for (Row row : rowSet) {
                                 Map<String, Object> item = new HashMap<>();
-                                // TODO:双表查询id冲突
+
                                 item.put("id", row.getInteger("user_id"));
                                 item.put("name", row.getString("username"));
                                 list.add(item);
