@@ -18,6 +18,7 @@ public class WeBlogVerticle extends AbstractVerticle {
         Router postRouter = Router.router(vertx);
         Router reportRouter = Router.router(vertx);
         Router commentRouter = Router.router(vertx);
+        Router messageRouter = Router.router(vertx);
 
         router.mountSubRouter("/api", apiRouter);
         apiRouter.route().handler(BodyHandler.create()); // 添加 body 处理中间件
@@ -37,6 +38,13 @@ public class WeBlogVerticle extends AbstractVerticle {
                 followRouter.post("/list").handler(Follow::getFollowList);
                 followRouter.get("/cancel/:id").handler(Validator::checkAuth).handler(Follow::cancelFollow);
                 followRouter.get("/:id").handler(Validator::checkAuth).handler(Follow::followUser);
+            }
+
+            // 消息路由
+            userRouter.mountSubRouter("/message", messageRouter);
+            {
+                messageRouter.get("/list").handler(Validator::checkAuth).handler(Message::getMessageList);
+                messageRouter.get("/:id").handler(Validator::checkAuth).handler(Message::readMessage);
             }
         }
 
