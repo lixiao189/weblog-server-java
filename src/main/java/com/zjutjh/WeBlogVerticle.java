@@ -17,6 +17,7 @@ public class WeBlogVerticle extends AbstractVerticle {
         Router followRouter = Router.router(vertx);
         Router postRouter = Router.router(vertx);
         Router reportRouter = Router.router(vertx);
+        Router tagRouter = Router.router(vertx);
         Router commentRouter = Router.router(vertx);
 
         router.mountSubRouter("/api", apiRouter);
@@ -48,6 +49,9 @@ public class WeBlogVerticle extends AbstractVerticle {
             postRouter.get("/delete/:id").handler(Validator::checkAuth).handler(Post::deletePost);
             postRouter.post("/list/:page").handler(Post::getPostList);
             postRouter.post("/modify").handler(Validator::checkAuth).handler(Post::modifyPost);
+
+            // 标签相关路由
+            tagRouter.get("/autocomplete/:name").handler(Validator::checkAuth); // 获取标签自动补全列表
 
             // 举报路由
             postRouter.mountSubRouter("/report", reportRouter);
