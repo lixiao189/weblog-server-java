@@ -121,8 +121,10 @@ public class Helper {
             }
 
             String title = "";
+            int userID = -1;
             for (Row row : ar.result()) {
                 title = row.getString("title");
+                userID = row.getInteger("sender_id");
             }
 
             // 解析用户 session
@@ -130,12 +132,35 @@ public class Helper {
             int senderID = session.get("id");
             String senderName = session.get("username");
 
+
             String insertCommentStmt = "insert into comments (post_id, post_title, content, sender_id, sender_name, at_id, at_name, is_reported) values (?, ?, ?, ?, ?, ?, ?, 0)";
+            int finalUserID = userID;
             App.getMySQLClient().preparedQuery(insertCommentStmt).execute(Tuple.of(
                     postID, title, content, senderID, senderName, atID, atName
             ), insertAr -> {
                 if (insertAr.succeeded()) {
-                    context.json(new JsonObject(Helper.respData(0, "创建成功", null)));
+                    // 对应用户消息数量+1 (自己对自己发的不加)
+                    if (senderID == finalUserID || (atID != null && atID.equals(senderID))) {
+                        context.json(new JsonObject(Helper.respData(0, "创建成功", null)));
+                    } else {
+                        int finalID;
+                        if (atID != null) {
+                            finalID = atID;
+                        } else {
+                            finalID = finalUserID;
+                        }
+                        String sql = "UPDATE users SET message_num = message_num + 1 WHERE id = ?";
+                        App.getMySQLClient().preparedQuery(sql).execute(Tuple.of(finalID), res -> {
+                            if (res.failed()) {
+                                System.out.println(res.cause().getMessage());
+                                context.end();
+                            } else {
+                                context.json(new JsonObject(Helper.respData(0, "创建成功", null)));
+                            }
+                        });
+                    }
+
+
                 } else {
                     System.out.println(insertAr.cause().getMessage());
                     context.end();

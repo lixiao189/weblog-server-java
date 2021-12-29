@@ -2,3 +2,5 @@
 weblog-server-java.iml
 target
 *config.properties
+out
+*META-INF
