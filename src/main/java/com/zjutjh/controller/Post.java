@@ -12,11 +12,11 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 public class Post {
     public static void createPost(RoutingContext context) {
-        // TODO 看看帖子是否新增标签
         JsonObject body = context.getBodyAsJson();
         Session session = context.session();
 
@@ -24,38 +24,66 @@ public class Post {
         String name = session.get("username");
         String title = body.getString("title");
         String content = body.getString("content");
-        JsonArray oldTags = body.getJsonObject("tag").getJsonArray("old");
-        JsonArray newTags = body.getJsonObject("tag").getJsonArray("new");
+        JsonArray tags = body.getJsonArray("tags");
 
-        ArrayList<Tuple> newTagInsertBatch = new ArrayList<>();
-        for (Object tag : newTags) {
-            newTagInsertBatch.add(Tuple.of(UUID.randomUUID(), tag));
-        }
-
-        final String insertNewTagStmt = "insert into tags (id, name) values (?, ?)";
-        App.getMySQLClient().preparedQuery(insertNewTagStmt).executeBatch(newTagInsertBatch).compose(ar -> {
-            // 接下来创建帖子
-            String insertPostStmt = "insert into posts (sender_id, sender_name, title, content, is_reported) values (?, ?, ?, ?, 0)";
-            return App.getMySQLClient().preparedQuery(insertPostStmt).execute(Tuple.of(senderID, name, title, content));
-        }).compose(ar -> {
+        // 先创建帖子
+        final String insertPostStmt = "insert into posts (sender_id, sender_name, title, content, is_reported) values (?, ?, ?, ?, 0)";
+        final List<Tuple> insertNewTagsBatch = new ArrayList<>();
+        final List<Tuple> insertRelationBatch = new ArrayList<>();
+        final Map<String, Object> futureContext = new HashMap<>();
+        App.getMySQLClient().preparedQuery(insertPostStmt).execute(Tuple.of(senderID, name, title, content)).compose(ar -> {
             // 获取创建的帖子的 ID
             long postID = ar.property(MySQLClient.LAST_INSERTED_ID);
+            futureContext.put("postID", postID);
 
-            // 接下来创建帖子和 Tag 的关系
-            ArrayList<Tuple> insertRelationBatch = new ArrayList<>();
-            // 添加旧 tag ID
-            for (Object tagID : oldTags)
-                insertRelationBatch.add(Tuple.of(postID, tagID));
-            for (Tuple tagData : newTagInsertBatch)
-                insertRelationBatch.add(Tuple.of(postID, tagData.getUUID(0)));
+            final List<Tuple> queryExitTagBatch = new ArrayList<>();
+            for (Object tag : tags)
+                queryExitTagBatch.add(Tuple.of(tag));
+            String queryExistTagStmt = "select * from tags where name = ?";
 
-            // 没有关联的 tag 让这个帖子和 none 标签建立联系
-            if (insertRelationBatch.size() == 0) {
-                insertRelationBatch.add(Tuple.of(postID, "none"));
+            return App.getMySQLClient().preparedQuery(queryExistTagStmt).executeBatch(queryExitTagBatch);
+        }).compose(ar -> {
+            // 挑出新 tag 和旧 tag
+            RowSet<Row> result = ar;
+            futureContext.put("hasTag", tags.size() > 0); // 记录这个帖子是否存在 tag
+            List<Row> oldTagList = new ArrayList<>();
+
+            // 取出老 tag
+            do {
+                for (Row row : result)
+                    oldTagList.add(row);
+            } while ((result = result.next()) != null);
+
+            for (Object tag : tags) {
+                // 检查这个 tag 是否是 old tag
+                boolean isOldTag = false;
+                for (Row tagItem : oldTagList) {
+                    if (tagItem.getString("name").equals(tag)) {
+                        isOldTag = true;
+                        insertRelationBatch.add(Tuple.of(futureContext.get("postID"), tagItem.getString("id")));
+                        break;
+                    }
+                }
+
+                // 检测到是新 tag
+                if (!isOldTag) {
+                    String newTagID = UUID.randomUUID().toString();
+                    insertNewTagsBatch.add(Tuple.of(newTagID, tag));
+                    insertRelationBatch.add(Tuple.of(futureContext.get("postID"), newTagID));
+                }
             }
 
-            String insertRelationStmt = "insert into post_to_tag (post_id, tag_id) VALUES (?, ?)";
+            // 插入 tag 和 post 的关系
+            String insertRelationStmt = "insert into post_to_tag (post_id, tag_id) values (?, ?)";
             return App.getMySQLClient().preparedQuery(insertRelationStmt).executeBatch(insertRelationBatch);
+        }).compose(ar -> {
+            if (insertNewTagsBatch.size() == 0) {
+                return Future.succeededFuture();
+            } else {
+                // 插入新的 tag
+                String insertNewTagsStmt = "insert into tags (id, name) values (?, ?)";
+                return App.getMySQLClient().preparedQuery(insertNewTagsStmt).executeBatch(insertNewTagsBatch);
+            }
         }).compose(ar -> {
             context.json(new JsonObject(Helper.respData(0, "发送成功", null)));
             return Future.succeededFuture();
