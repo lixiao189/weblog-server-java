@@ -9,9 +9,7 @@ import io.vertx.sqlclient.Tuple;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Helper {
     public static Map<String, Object> respData(int code, String msg, Object data) {
@@ -110,6 +108,8 @@ public class Helper {
 
             list.add(item);
         }
+
+        list.sort((a, b) -> (int) b.get("id") - (int) a.get("id"));
     }
 
     public static ArrayList<Map<String, Object>> getCommentListData(RowSet<Row> rows) {
