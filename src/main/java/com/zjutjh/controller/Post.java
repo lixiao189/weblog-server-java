@@ -175,17 +175,17 @@ public class Post {
         final Tuple queryNextPageData;
 
         if (type.equals("all")) {
-            queryPostListStmt = "select posts.*, tags.id as tag_id, tags.name from posts " +
+            queryPostListStmt = "select post_list.*, tags.id as tag_id, tags.name from " +
+                    "(select * from posts order by posts.created_at desc limit 20 offset ?) as post_list " +
                     "inner join post_to_tag inner join tags " +
-                    "on posts.id = post_to_tag.post_id and post_to_tag.tag_id = tags.id " +
-                    "order by posts.created_at desc limit 20 offset ?";
+                    "on post_list.id = post_to_tag.post_id and post_to_tag.tag_id = tags.id ";
             queryPageData = Tuple.of((page - 1) * 20);
             queryNextPageData = Tuple.of(page * 20);
         } else if (type.equals("user")) {
-            queryPostListStmt = "select posts.*, tags.id as tag_id, tags.name from posts " +
+            queryPostListStmt = "select post_list.*, tags.id as tag_id, tags.name from " +
+                    "(select * from posts where sender_id = ? order by posts.created_at desc limit 20 offset ?) as post_list " +
                     "inner join post_to_tag inner join tags " +
-                    "on posts.id = post_to_tag.post_id and post_to_tag.tag_id = tags.id " +
-                    "where sender_id = ? order by posts.created_at desc limit 20 offset ?";
+                    "on post_list.id = post_to_tag.post_id and post_to_tag.tag_id = tags.id ";
             queryPageData = Tuple.of(body.getInteger("id"), (page - 1) * 20);
             queryNextPageData = Tuple.of(body.getInteger("id"), page * 20);
         } else {
