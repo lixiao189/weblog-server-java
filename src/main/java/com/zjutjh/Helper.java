@@ -64,6 +64,8 @@ public class Helper {
     }
 
     public static void getPostListData(RowSet<Row> rows, ArrayList<Map<String, Object>> list) {
+        Map<Integer, Map<String, Object>> postList = new HashMap<>();
+        Map<Integer, ArrayList<Map<String, Object>>> tagList = new HashMap<>();
         for (Row row : rows) {
             Map<String, Object> item = new HashMap<>();
             item.put("id", row.getInteger("id"));
@@ -72,6 +74,27 @@ public class Helper {
             item.put("title", row.getString("title"));
             item.put("content", row.getString("content").length() > 100 ? row.getString("content").substring(0, 100) + "..." : row.getString("content"));
             item.put("created_at", Helper.getTime(row.getLocalDate("created_at"), row.getLocalTime("created_at")));
+
+            Map<String, Object> tag = new HashMap<>();
+            tag.put("id", row.getString("tag_id"));
+            tag.put("name", row.getString("name"));
+
+            int id = row.getInteger("id");
+            postList.put(id, item);
+            if (!tagList.containsKey(row.getInteger("id")))
+                tagList.put(row.getInteger("id"), new ArrayList<>());
+            tagList.get(row.getInteger("id")).add(tag);
+        }
+
+        for (Integer key : postList.keySet()) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", postList.get(key).get("id"));
+            item.put("sender_id", postList.get(key).get("sender_id"));
+            item.put("sender_name", postList.get(key).get("sender_name"));
+            item.put("title", postList.get(key).get("title"));
+            item.put("created_at", postList.get(key).get("created_at"));
+            item.put("tags", tagList.get(key));
+
             list.add(item);
         }
     }

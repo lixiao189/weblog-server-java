@@ -16,6 +16,7 @@ import java.util.*;
 
 public class Post {
     public static void createPost(RoutingContext context) {
+        // TODO 没有给 tag 下的 post_num 增加计数器 如果 tag 为空添加 none tag
         JsonObject body = context.getBodyAsJson();
         Session session = context.session();
 
@@ -128,11 +129,17 @@ public class Post {
         final Tuple queryNextPageData;
 
         if (type.equals("all")) {
-            queryPostListStmt = "select * from posts order by created_at desc limit 20 offset ?";
+            queryPostListStmt = "select posts.*, tags.id as tag_id, tags.name from posts " +
+                    "inner join post_to_tag inner join tags " +
+                    "on posts.id = post_to_tag.post_id and post_to_tag.tag_id = tags.id " +
+                    "order by posts.created_at desc limit 20 offset ?";
             queryPageData = Tuple.of((page - 1) * 20);
             queryNextPageData = Tuple.of(page * 20);
         } else if (type.equals("user")) {
-            queryPostListStmt = "select * from posts where sender_id = ? order by created_at desc limit 20 offset ?";
+            queryPostListStmt = "select posts.*, tags.id as tag_id, tags.name from posts " +
+                    "inner join post_to_tag inner join tags " +
+                    "on posts.id = post_to_tag.post_id and post_to_tag.tag_id = tags.id " +
+                    "where sender_id = ? order by posts.created_at desc limit 20 offset ?";
             queryPageData = Tuple.of(body.getInteger("id"), (page - 1) * 20);
             queryNextPageData = Tuple.of(body.getInteger("id"), page * 20);
         } else {
