@@ -54,7 +54,7 @@ public class Tag {
      */
     public static void getPostList(RoutingContext context) {
         // 解析路径参数
-        int tagID = Integer.parseInt(context.pathParam("tagID"));
+        String tagID = context.pathParam("tagID");
         int page = Integer.parseInt(context.pathParam("page"));
 
         // 获取 tag 下的所有帖子
