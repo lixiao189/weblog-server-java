@@ -18,7 +18,7 @@ public class Tag {
      *
      * @param context 框架上下文
      */
-    public static void tagAutoComplete(RoutingContext context) {
+    public static void tagSearch(RoutingContext context) {
         JsonObject body = context.getBodyAsJson();
         String name = body.getString("name"); // 获取补全名称
 
