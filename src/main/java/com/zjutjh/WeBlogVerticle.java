@@ -63,7 +63,7 @@ public class WeBlogVerticle extends AbstractVerticle {
             {
                 tagRouter.post("/search").handler(Tag::tagSearch); // 获取关键字相关的 tag
                 tagRouter.get("/list/:tagID/:page").handler(Tag::getPostList); // 获取分类下的所有帖子
-                tagRouter.get("/hot").handler(Tag::getHotTag); // 获取热门板块
+                tagRouter.get("/latest").handler(Tag::getLatestTag); // 获取最近板块
             }
 
             // 举报路由

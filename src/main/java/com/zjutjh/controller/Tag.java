@@ -85,9 +85,9 @@ public class Tag {
      *
      * @param context 框架请求上下文
      */
-    public static void getHotTag(RoutingContext context) {
-        // 获取回帖数最多的 20 个 tag
-        final String queryHotTagStmt = "select  * from tags order by post_num desc limit 20";
+    public static void getLatestTag(RoutingContext context) {
+        // 获取回帖数最多的 10 个 tag
+        final String queryHotTagStmt = "select  * from tags order by created_at desc limit 10";
         App.getMySQLClient().preparedQuery(queryHotTagStmt).execute().compose(ar -> {
             ArrayList<JsonObject> tagList = new ArrayList<>();
             for (Row row : ar)
