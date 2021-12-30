@@ -16,7 +16,6 @@ import java.util.*;
 
 public class Post {
     public static void createPost(RoutingContext context) {
-        // TODO 没有给 tag 下的 post_num 增加计数器 如果 tag 为空添加 none tag
         JsonObject body = context.getBodyAsJson();
         Session session = context.session();
 
@@ -48,6 +47,11 @@ public class Post {
                 insertRelationBatch.add(Tuple.of(postID, tagID));
             for (Tuple tagData : newTagInsertBatch)
                 insertRelationBatch.add(Tuple.of(postID, tagData.getUUID(0)));
+
+            // 没有关联的 tag 让这个帖子和 none 标签建立联系
+            if (insertRelationBatch.size() == 0) {
+                insertRelationBatch.add(Tuple.of(postID, "none"));
+            }
 
             String insertRelationStmt = "insert into post_to_tag (post_id, tag_id) VALUES (?, ?)";
             return App.getMySQLClient().preparedQuery(insertRelationStmt).executeBatch(insertRelationBatch);
