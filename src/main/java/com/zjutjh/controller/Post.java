@@ -26,6 +26,9 @@ public class Post {
         String content = body.getString("content");
         JsonArray tags = body.getJsonArray("tags");
 
+        if (tags.size() == 0)
+            tags.add("none");
+
         // 先创建帖子
         final String insertPostStmt = "insert into posts (sender_id, sender_name, title, content, is_reported) values (?, ?, ?, ?, 0)";
         final List<Tuple> insertNewTagsBatch = new ArrayList<>();
