@@ -3,16 +3,16 @@ package com.zjutjh.controller;
 import com.zjutjh.App;
 import com.zjutjh.Helper;
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
+import io.vertx.mysqlclient.MySQLClient;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Post {
     public static void createPost(RoutingContext context) {
@@ -23,10 +23,40 @@ public class Post {
         String name = session.get("username");
         String title = body.getString("title");
         String content = body.getString("content");
+        JsonArray oldTags = body.getJsonObject("tag").getJsonArray("old");
+        JsonArray newTags = body.getJsonObject("tag").getJsonArray("new");
 
-        String insertPostStmt = "insert into posts (sender_id, sender_name, title, content, is_reported) values (?, ?, ?, ?, 0)";
-        App.getMySQLClient().preparedQuery(insertPostStmt).execute(Tuple.of(senderID, name, title, content),
-                ar -> context.json(new JsonObject(Helper.respData(0, "发送成功", null))));
+        ArrayList<Tuple> newTagInsertBatch = new ArrayList<>();
+        for (Object tag : newTags) {
+            newTagInsertBatch.add(Tuple.of(UUID.randomUUID(), tag));
+        }
+
+        final String insertNewTagStmt = "insert into tags (id, name) values (?, ?)";
+        App.getMySQLClient().preparedQuery(insertNewTagStmt).executeBatch(newTagInsertBatch).compose(ar -> {
+            // 接下来创建帖子
+            String insertPostStmt = "insert into posts (sender_id, sender_name, title, content, is_reported) values (?, ?, ?, ?, 0)";
+            return App.getMySQLClient().preparedQuery(insertPostStmt).execute(Tuple.of(senderID, name, title, content));
+        }).compose(ar -> {
+            // 获取创建的帖子的 ID
+            long postID = ar.property(MySQLClient.LAST_INSERTED_ID);
+
+            // 接下来创建帖子和 Tag 的关系
+            ArrayList<Tuple> insertRelationBatch = new ArrayList<>();
+            // 添加旧 tag ID
+            for (Object tagID : oldTags)
+                insertRelationBatch.add(Tuple.of(postID, tagID));
+            for (Tuple tagData : newTagInsertBatch)
+                insertRelationBatch.add(Tuple.of(postID, tagData.getUUID(0)));
+
+            String insertRelationStmt = "insert into post_to_tag (post_id, tag_id) VALUES (?, ?)";
+            return App.getMySQLClient().preparedQuery(insertRelationStmt).executeBatch(insertRelationBatch);
+        }).compose(ar -> {
+            context.json(new JsonObject(Helper.respData(0, "发送成功", null)));
+            return Future.succeededFuture();
+        }).onFailure(cause -> {
+            cause.printStackTrace();
+            context.end();
+        });
     }
 
     public static void getPost(RoutingContext context) {

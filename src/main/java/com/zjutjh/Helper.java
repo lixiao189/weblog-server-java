@@ -1,6 +1,5 @@
 package com.zjutjh;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
@@ -64,7 +63,7 @@ public class Helper {
         return list;
     }
 
-      public static void getPostListData(RowSet<Row> rows, ArrayList<Map<String, Object>> list) {
+    public static void getPostListData(RowSet<Row> rows, ArrayList<Map<String, Object>> list) {
         for (Row row : rows) {
             Map<String, Object> item = new HashMap<>();
             item.put("id", row.getInteger("id"));
@@ -133,7 +132,7 @@ public class Helper {
             String senderName = session.get("username");
 
 
-            String insertCommentStmt = "insert into comments (post_id, content, sender_id, sender_name, at_id, at_name, is_reported) values (?, ?, ?, ?, ?, ?, ?, 0)";
+            String insertCommentStmt = "insert into comments (post_id, content, sender_id, sender_name, at_id, at_name, is_reported) values (?, ?, ?, ?, ?, ?, 0)";
             int finalUserID = userID;
             App.getMySQLClient().preparedQuery(insertCommentStmt).execute(Tuple.of(
                     postID, content, senderID, senderName, atID, atName

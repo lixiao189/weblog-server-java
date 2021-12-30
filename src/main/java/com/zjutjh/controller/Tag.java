@@ -34,6 +34,7 @@ public class Tag {
 
             for (Row row : ar) {
                 final Map<String, Object> tagItem = new HashMap<>();
+                tagItem.put("id", row.getInteger("id"));
                 tagItem.put("name", row.getString("name"));
                 tagList.add(tagItem);
             }
