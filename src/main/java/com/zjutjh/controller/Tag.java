@@ -70,7 +70,7 @@ public class Tag {
                 context.json(new JsonObject(Helper.respData(2, "内容为空", null)));
                 return Future.failedFuture("内容为空");
             } else {
-                Helper.getPostListData(ar, postList);
+                Helper.getPostListWithoutTagData(ar, postList);
                 return App.getMySQLClient().preparedQuery(queryPostListStmt).execute(Tuple.of(tagID, page * 20));
             }
         }).compose(ar -> {
