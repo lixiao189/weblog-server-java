@@ -16,6 +16,7 @@ import java.util.*;
 
 public class Post {
     public static void createPost(RoutingContext context) {
+        // TODO 看看帖子是否新增标签
         JsonObject body = context.getBodyAsJson();
         Session session = context.session();
 
@@ -67,12 +68,24 @@ public class Post {
     public static void getPost(RoutingContext context) {
         int id = Integer.parseInt(context.pathParam("id"));
 
-        String queryPostStmt = "select * from posts where id = ?";
+        String queryPostStmt = "select posts.*, tags.id as tag_id, tags.name as tag_name from posts " +
+                "inner join post_to_tag " +
+                "inner join tags " +
+                "on post_to_tag.post_id = posts.id and post_to_tag.tag_id = tags.id " +
+                "where posts.id = ?";
         App.getMySQLClient().preparedQuery(queryPostStmt).execute(Tuple.of(id), ar -> {
             RowSet<Row> rows = ar.result();
             if (rows.size() == 0) {
                 context.json(new JsonObject(Helper.respData(2, "帖子不存在", null)));
                 return;
+            }
+
+            List<Map<String, Object>> tagList = new ArrayList<>();
+            for (Row row : rows) {
+                Map<String, Object> tag = new HashMap<>();
+                tag.put("id", row.getString("tag_id"));
+                tag.put("name", row.getString("tag_name"));
+                tagList.add(tag);
             }
 
             Map<String, Object> result = new HashMap<>();
@@ -82,6 +95,7 @@ public class Post {
                 result.put("title", row.getString("title"));
                 result.put("content", row.getString("content"));
                 result.put("created_at", Helper.getTime(row.getLocalDate("created_at"), row.getLocalTime("created_at")));
+                result.put("tags", tagList);
             }
 
             context.json(new JsonObject(Helper.respData(0, "获取成功", result)));
