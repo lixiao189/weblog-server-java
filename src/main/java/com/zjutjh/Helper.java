@@ -72,6 +72,8 @@ public class Helper {
             item.put("created_at", Helper.getTime(row.getLocalDate("created_at"), row.getLocalTime("created_at")));
             list.add(item);
         }
+
+        list.sort((a, b) -> (int) b.get("id") - (int) a.get("id"));
     }
 
     public static void getPostListData(RowSet<Row> rows, ArrayList<Map<String, Object>> list) {
