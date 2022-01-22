@@ -17,7 +17,9 @@ public class WeBlogVerticle extends AbstractVerticle {
         Router followRouter = Router.router(vertx);
         Router postRouter = Router.router(vertx);
         Router reportRouter = Router.router(vertx);
+        Router tagRouter = Router.router(vertx);
         Router commentRouter = Router.router(vertx);
+        Router messageRouter = Router.router(vertx);
 
         router.mountSubRouter("/api", apiRouter);
         apiRouter.route().handler(BodyHandler.create()); // 添加 body 处理中间件
@@ -38,6 +40,13 @@ public class WeBlogVerticle extends AbstractVerticle {
                 followRouter.get("/cancel/:id").handler(Validator::checkAuth).handler(Follow::cancelFollow);
                 followRouter.get("/:id").handler(Validator::checkAuth).handler(Follow::followUser);
             }
+
+            // 消息路由
+            userRouter.mountSubRouter("/message", messageRouter);
+            {
+                messageRouter.get("/list").handler(Validator::checkAuth).handler(Message::getMessageList);
+                messageRouter.get("/:id").handler(Validator::checkAuth).handler(Message::readMessage);
+            }
         }
 
         // 帖子路由
@@ -48,6 +57,14 @@ public class WeBlogVerticle extends AbstractVerticle {
             postRouter.get("/delete/:id").handler(Validator::checkAuth).handler(Post::deletePost);
             postRouter.post("/list/:page").handler(Post::getPostList);
             postRouter.post("/modify").handler(Validator::checkAuth).handler(Post::modifyPost);
+
+            // 标签相关路由
+            postRouter.mountSubRouter("/tag", tagRouter);
+            {
+                tagRouter.post("/search").handler(Tag::tagSearch); // 获取关键字相关的 tag
+                tagRouter.get("/list/:tagID/:page").handler(Tag::getPostList); // 获取分类下的所有帖子
+                tagRouter.get("/latest").handler(Tag::getLatestTag); // 获取最近板块
+            }
 
             // 举报路由
             postRouter.mountSubRouter("/report", reportRouter);

@@ -95,7 +95,7 @@ public class Comment {
         int page = body.getInteger("page");
 
         if (type.equals("post")) {
-            String queryCommentListStmt = "select * from comments where post_id = ? limit 20 offset ?";
+            String queryCommentListStmt = "select comments.*, posts.title from comments inner join posts on posts.id = comments.post_id where comments.post_id = ? limit 20 offset ?";
 
             App.getMySQLClient().preparedQuery(queryCommentListStmt).execute(Tuple.of(id, (page - 1) * 20), ar -> {
                 if (ar.failed()) {
@@ -114,7 +114,7 @@ public class Comment {
                 });
             });
         } else if (type.equals("user")) {
-            String queryUserListStmt = "select * from comments where sender_id = ? limit 20 offset ?";
+            String queryUserListStmt = "select comments.*, posts.title from comments inner join posts on posts.id = comments.post_id where comments.sender_id = ? limit 20 offset ?";
 
             App.getMySQLClient().preparedQuery(queryUserListStmt).execute(Tuple.of(id, (page - 1) * 20), ar -> {
                 if (ar.failed()) {

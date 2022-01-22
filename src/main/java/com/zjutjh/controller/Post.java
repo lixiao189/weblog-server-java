@@ -3,16 +3,17 @@ package com.zjutjh.controller;
 import com.zjutjh.App;
 import com.zjutjh.Helper;
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.Session;
+import io.vertx.mysqlclient.MySQLClient;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
 
 public class Post {
     public static void createPost(RoutingContext context) {
@@ -23,21 +24,99 @@ public class Post {
         String name = session.get("username");
         String title = body.getString("title");
         String content = body.getString("content");
+        JsonArray tags = body.getJsonArray("tags");
 
-        String insertPostStmt = "insert into posts (sender_id, sender_name, title, content, is_reported) values (?, ?, ?, ?, 0)";
-        App.getMySQLClient().preparedQuery(insertPostStmt).execute(Tuple.of(senderID, name, title, content),
-                ar -> context.json(new JsonObject(Helper.respData(0, "发送成功", null))));
+        if (tags.size() == 0)
+            tags.add("none");
+
+        // 先创建帖子
+        final String insertPostStmt = "insert into posts (sender_id, sender_name, title, content, is_reported) values (?, ?, ?, ?, 0)";
+        final List<Tuple> insertNewTagsBatch = new ArrayList<>();
+        final List<Tuple> insertRelationBatch = new ArrayList<>();
+        final Map<String, Object> futureContext = new HashMap<>();
+        App.getMySQLClient().preparedQuery(insertPostStmt).execute(Tuple.of(senderID, name, title, content)).compose(ar -> {
+            // 获取创建的帖子的 ID
+            long postID = ar.property(MySQLClient.LAST_INSERTED_ID);
+            futureContext.put("postID", postID);
+
+            final List<Tuple> queryExitTagBatch = new ArrayList<>();
+            for (Object tag : tags)
+                queryExitTagBatch.add(Tuple.of(tag));
+            String queryExistTagStmt = "select * from tags where name = ?";
+
+            return App.getMySQLClient().preparedQuery(queryExistTagStmt).executeBatch(queryExitTagBatch);
+        }).compose(ar -> {
+            // 挑出新 tag 和旧 tag
+            RowSet<Row> result = ar;
+            futureContext.put("hasTag", tags.size() > 0); // 记录这个帖子是否存在 tag
+            List<Row> oldTagList = new ArrayList<>();
+
+            // 取出老 tag
+            do {
+                for (Row row : result)
+                    oldTagList.add(row);
+            } while ((result = result.next()) != null);
+
+            for (Object tag : tags) {
+                // 检查这个 tag 是否是 old tag
+                boolean isOldTag = false;
+                for (Row tagItem : oldTagList) {
+                    if (tagItem.getString("name").equals(tag)) {
+                        isOldTag = true;
+                        insertRelationBatch.add(Tuple.of(futureContext.get("postID"), tagItem.getString("id")));
+                        break;
+                    }
+                }
+
+                // 检测到是新 tag
+                if (!isOldTag) {
+                    String newTagID = UUID.randomUUID().toString();
+                    insertNewTagsBatch.add(Tuple.of(newTagID, tag));
+                    insertRelationBatch.add(Tuple.of(futureContext.get("postID"), newTagID));
+                }
+            }
+
+            // 插入 tag 和 post 的关系
+            String insertRelationStmt = "insert into post_to_tag (post_id, tag_id) values (?, ?)";
+            return App.getMySQLClient().preparedQuery(insertRelationStmt).executeBatch(insertRelationBatch);
+        }).compose(ar -> {
+            if (insertNewTagsBatch.size() == 0) {
+                return Future.succeededFuture();
+            } else {
+                // 插入新的 tag
+                String insertNewTagsStmt = "insert into tags (id, name) values (?, ?)";
+                return App.getMySQLClient().preparedQuery(insertNewTagsStmt).executeBatch(insertNewTagsBatch);
+            }
+        }).compose(ar -> {
+            context.json(new JsonObject(Helper.respData(0, "发送成功", null)));
+            return Future.succeededFuture();
+        }).onFailure(cause -> {
+            cause.printStackTrace();
+            context.end();
+        });
     }
 
     public static void getPost(RoutingContext context) {
         int id = Integer.parseInt(context.pathParam("id"));
 
-        String queryPostStmt = "select * from posts where id = ?";
+        String queryPostStmt = "select posts.*, tags.id as tag_id, tags.name as tag_name from posts " +
+                "inner join post_to_tag " +
+                "inner join tags " +
+                "on post_to_tag.post_id = posts.id and post_to_tag.tag_id = tags.id " +
+                "where posts.id = ?";
         App.getMySQLClient().preparedQuery(queryPostStmt).execute(Tuple.of(id), ar -> {
             RowSet<Row> rows = ar.result();
             if (rows.size() == 0) {
                 context.json(new JsonObject(Helper.respData(2, "帖子不存在", null)));
                 return;
+            }
+
+            List<Map<String, Object>> tagList = new ArrayList<>();
+            for (Row row : rows) {
+                Map<String, Object> tag = new HashMap<>();
+                tag.put("id", row.getString("tag_id"));
+                tag.put("name", row.getString("tag_name"));
+                tagList.add(tag);
             }
 
             Map<String, Object> result = new HashMap<>();
@@ -47,6 +126,7 @@ public class Post {
                 result.put("title", row.getString("title"));
                 result.put("content", row.getString("content"));
                 result.put("created_at", Helper.getTime(row.getLocalDate("created_at"), row.getLocalTime("created_at")));
+                result.put("tags", tagList);
             }
 
             context.json(new JsonObject(Helper.respData(0, "获取成功", result)));
@@ -98,11 +178,17 @@ public class Post {
         final Tuple queryNextPageData;
 
         if (type.equals("all")) {
-            queryPostListStmt = "select * from posts order by created_at desc limit 20 offset ?";
+            queryPostListStmt = "select post_list.*, tags.id as tag_id, tags.name from " +
+                    "(select * from posts order by posts.created_at desc limit 20 offset ?) as post_list " +
+                    "inner join post_to_tag inner join tags " +
+                    "on post_list.id = post_to_tag.post_id and post_to_tag.tag_id = tags.id ";
             queryPageData = Tuple.of((page - 1) * 20);
             queryNextPageData = Tuple.of(page * 20);
         } else if (type.equals("user")) {
-            queryPostListStmt = "select * from posts where sender_id = ? order by created_at desc limit 20 offset ?";
+            queryPostListStmt = "select post_list.*, tags.id as tag_id, tags.name from " +
+                    "(select * from posts where sender_id = ? order by posts.created_at desc limit 20 offset ?) as post_list " +
+                    "inner join post_to_tag inner join tags " +
+                    "on post_list.id = post_to_tag.post_id and post_to_tag.tag_id = tags.id ";
             queryPageData = Tuple.of(body.getInteger("id"), (page - 1) * 20);
             queryNextPageData = Tuple.of(body.getInteger("id"), page * 20);
         } else {

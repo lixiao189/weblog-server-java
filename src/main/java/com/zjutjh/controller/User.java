@@ -108,6 +108,7 @@ public class User {
                         data.put("administrator", row.getInteger("administrator") == 1);
                         data.put("followed_num", row.getInteger("followed_num"));
                         data.put("followers_num", row.getInteger("followers_num"));
+                        data.put("message_num", row.getInteger("message_num"));
                     }
 
                     context.json(new JsonObject(Helper.respData(0, "查询成功", data)));
